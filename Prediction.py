@@ -17,6 +17,9 @@ import numpy as np
 with open('delivery_time_model.pkl', 'rb') as f:
     model = pickle.load(f)
 
+with open('scaler.pkl', 'rb') as f:
+    scaler = pickle.load(f)
+
 print("✅ Model loaded successfully.")
 
 def month_end_day(date):

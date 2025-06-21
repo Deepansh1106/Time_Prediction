@@ -19,32 +19,47 @@ with open('delivery_time_model.pkl', 'rb') as f:
 
 print("✅ Model loaded successfully.")
 
+def month_end_day(date):
+    from calendar import monthrange
+    return monthrange(date.year, date.month)[1]
 
 def get_user_input():
-    # Ask user for required inputs
+    # Numerical inputs
     age = float(input("Enter Age of Delivery Partner: "))
+    rating = float(input("Enter Delivery Partner's Average Rating (e.g., 4.5): "))
     distance = float(input("Enter Total Distance (in km): "))
-    festival = input("Is there a Festival? (Yes/No): ")
-    weather = input('Enter Weather Condition (0 for "Sunny", 1 for "Cloudy", 2 for "Rainy", 3 for "Foggy", 4 for "Windy"): ')
-    # Create zero-filled feature vector
-    input_array = np.zeros((1, 29))  # 29 features
 
-    # Manually set the known inputs at their respective indexes
+    festival = input("Is there a Festival? (Yes/No): ").strip().lower()
+    weather = input("Enter Weather Condition (Sunny/Stormy/Cloudy/Fog/Windy): ").strip().capitalize()
+    date_str = input("Enter Delivery Date (YYYY-MM-DD): ")
+    delivery_date = datetime.strptime(date_str, "%Y-%m-%d")
+
+    input_array = np.zeros((1, 17))  # 17 features
     input_array[0, 0] = age
-    input_array[0, 28] = distance
+    input_array[0, 1] = rating
+    input_array[0, 4] = distance
+    input_array[0, 2] = 1 if festival == "yes" else 0
 
-    # Encode categorical inputs (assuming label encoding: Yes=1, No=0)
-    input_array[0, 11] = 1 if festival.lower() == "yes" else 0
-
-    # Example weather encoding
     weather_map = {'Sunny': 0, 'Stormy': 1, 'Cloudy': 2, 'Fog': 3, 'Windy': 4}
-    input_array[0, 14] = weather_map.get(weather, 0)  # Default to 0 if unknown
+    input_array[0, 3] = weather_map.get(weather, 0)
+
+    input_array[0, 5] = delivery_date.day
+    input_array[0, 6] = delivery_date.month
+    input_array[0, 7] = (delivery_date.month - 1) // 3 + 1
+    input_array[0, 8] = delivery_date.year
+    input_array[0, 9] = delivery_date.weekday()
+    input_array[0, 10] = 1 if delivery_date.day == 1 else 0
+    input_array[0, 11] = 1 if delivery_date.day == month_end_day(delivery_date) else 0
+    input_array[0, 12] = 1 if delivery_date.month in [1, 4, 7, 10] and delivery_date.day == 1 else 0
+    input_array[0, 13] = 1 if delivery_date.month in [3, 6, 9, 12] and delivery_date.day == month_end_day(delivery_date) else 0
+    input_array[0, 14] = 1 if delivery_date.month == 1 and delivery_date.day == 1 else 0
+    input_array[0, 15] = 1 if delivery_date.month == 12 and delivery_date.day == 31 else 0
+    input_array[0, 16] = 1 if delivery_date.weekday() >= 5 else 0
 
     return input_array
 
-# Collect user input
-features = get_user_input()
 
-# Predict using the trained 2-feature model
-predicted_delivery_time = model.predict(features)
-print("Predicted Delivery Time in Minutes:", round(predicted_delivery_time[0], 2))
+
+features = get_user_input()
+predicted = model.predict(features)
+print("\n📦 Predicted Delivery Time (in Minutes):", round(predicted[0], 2))
